@@ -11,7 +11,7 @@ import os
 
 app = Flask(__name__)  # 建立 Flask 應用程式實例
 app.config['SECRET_KEY'] = 'YourSecretKey'  # 用於表單 CSRF 保護的密鑰
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://my_hotel_47x0_user:u9OLqWszdCQIEOht2wrh9aH94rMckyv3@dpg-ctsfceq3esus73dpqgmg-a.oregon-postgres.render.com/my_hotel_47x0')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 關閉 SQLAlchemy 的變更追蹤
 # app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {  # 設定資料庫連接池
 #     'pool_pre_ping': True,  # 確保連接池中的連接可用
