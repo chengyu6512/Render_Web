@@ -4,16 +4,19 @@ from wtforms import StringField, SubmitField, DateField, SelectField, Validation
 from wtforms.validators import DataRequired  # 引入 WTForms 的驗證器
 from flask_sqlalchemy import SQLAlchemy  # 引入 SQLAlchemy，用於操作資料庫
 from datetime import date  # 用於日期驗證
+import os
+
+
 
 
 app = Flask(__name__)  # 建立 Flask 應用程式實例
 app.config['SECRET_KEY'] = 'YourSecretKey'  # 用於表單 CSRF 保護的密鑰
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost:5432/my_hotel'  # 資料庫連接 URL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 關閉 SQLAlchemy 的變更追蹤
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {  # 設定資料庫連接池
-    'pool_pre_ping': True,  # 確保連接池中的連接可用
-    'pool_recycle': 280  # 每隔 280 秒回收連接
-}
+# app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {  # 設定資料庫連接池
+#     'pool_pre_ping': True,  # 確保連接池中的連接可用
+#     'pool_recycle': 280  # 每隔 280 秒回收連接
+# }
 
 db = SQLAlchemy(app)  # 初始化資料庫
 
