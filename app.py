@@ -1,128 +1,98 @@
-from flask import Flask, render_template, request, redirect, url_for  # 引入 Flask 所需的基本模組
-from flask_wtf import FlaskForm  # 引入 Flask-WTF 以處理表單
-from wtforms import StringField, SubmitField, DateField, SelectField, ValidationError  # 引入 WTForms 的表單字段
-from wtforms.validators import DataRequired  # 引入 WTForms 的驗證器
-from flask_sqlalchemy import SQLAlchemy  # 引入 SQLAlchemy，用於操作資料庫
-from datetime import date  # 用於日期驗證
+from flask import Flask, render_template, request, redirect, url_for
+from flask_wtf import FlaskForm 
+from wtforms import StringField, SubmitField, DateField, SelectField, IntegerField
+from wtforms.validators import DataRequired, ValidationError
+
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 import os
 
-
-
-
-app = Flask(__name__)  # 建立 Flask 應用程式實例
-app.config['SECRET_KEY'] = 'YourSecretKey'  # 用於表單 CSRF 保護的密鑰
+app = Flask (__name__)
+app. config['SECRET_KEY'] = 'loulin'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://my_hotel_47x0_user:u9OLqWszdCQIEOht2wrh9aH94rMckyv3@dpg-ctsfceq3esus73dpqgmg-a.oregon-postgres.render.com/my_hotel_47x0')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 關閉 SQLAlchemy 的變更追蹤
-# app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {  # 設定資料庫連接池
-#     'pool_pre_ping': True,  # 確保連接池中的連接可用
-#     'pool_recycle': 280  # 每隔 280 秒回收連接
-# }
 
-db = SQLAlchemy(app)  # 初始化資料庫
+db = SQLAlchemy(app)
+
 
 # Example room data (in a real application, this would come from a database)
-rooms = [
-    ('101', 'Single Room'),
-    ('102', 'Double Room'),
-    ('103', 'Deluxe Room')
-]
+rooms = [('101', 'Single Room'), ('102', 'SingleX Room'), ('103', 'Double Room'), ('201', 'Deluxe Room'), ('202', 'Super Deluxe'),('203', 'Executive Suite')]
 
-# 定義資料庫模型
-class Guest(db.Model):  # 訪客資料表
+class Guest(db.Model):
     guest_id = db.Column(db.Integer, primary_key=True)
     guest_name = db.Column(db.String(255), nullable=False)
     contact_info = db.Column(db.String(255))
-
-class Room(db.Model):  # 房間資料表
+class Room(db.Model):
     room_number = db.Column(db.String(10), primary_key=True)
-    # other room fields...
-    
-class Booking(db.Model):  # 訂房資料表
+# other room fields...
+
+class Booking(db.Model):
     booking_id = db.Column(db.Integer, primary_key=True)
     guest_id = db.Column(db.Integer, db.ForeignKey('guest.guest_id'), nullable=False)
     room_number = db.Column(db.Integer, db.ForeignKey('room.room_number'), nullable=False)
     check_in_date = db.Column(db.Date, nullable=False)
     check_out_date = db.Column(db.Date, nullable=False)
-    # other booking fields...
+# other booking fields...
 
-# 定義訂房表單
-class BookingForm(FlaskForm):
-    guest_name = StringField('Guest Name', validators=[DataRequired()])
-    room_number = SelectField('Room Number', choices=rooms, validators=[DataRequired()])
-    check_in_date = DateField('Check-In Date', format='%Y-%m-%d', validators=[DataRequired()])
-    check_out_date = DateField('Check-Out Date', format='%Y-%m-%d', validators=[DataRequired()])
+class BookingForm (FlaskForm) :
+    guest_name = StringField ( 'Your Name', validators= [DataRequired ()])
+    room_number = SelectField ('Select A Room', choices=rooms, validators=[DataRequired ()])
+    check_in_date = DateField ('Check-In Date', format='%Y-%m-%d', validators=[DataRequired ()])
+    check_out_date = DateField('Check-Out Date',format='%Y-%m-%d', validators=[DataRequired()])
     contact_info = StringField('Contact Information', validators=[DataRequired()])
     submit = SubmitField('Book Now')
 
-    # 驗證入住日期
-    def validate_check_in_date(self, field):
-        if field.data < date.today():  # 入住日期不能是過去日期
-            raise ValidationError('Check-In Date cannot be in the past.')
-
-    # 驗證退房日期
     def validate_check_out_date(self, field):
-        if field.data <= self.check_in_date.data:  # 退房日期必須晚於入住日期
-            raise ValidationError('Check-Out Date must be after Check-In Date.')
+        if self.check_in_date.data and field.data <= self.check_in_date.data:
+            raise ValidationError('Check-Out Date must be later than Check-In Date.')
 
+class SearchForm(FlaskForm):
+    booking_id = IntegerField('Booking ID', validators=[DataRequired()])
+    submit = SubmitField('Search')
 
-# 首頁路由
 @app.route('/')
 def index():
-    # 查詢所有訂房資料並關聯訪客資訊
-    bookings = db.session.query(Booking, Guest).join(Guest, Booking.guest_id == Guest.guest_id).all()
-    # 整理數據供模板使用
-    booking_data = [
-        {
-            'guest_name': booking.Guest.guest_name,
-            'room_number': booking.Booking.room_number,
-            'check_in_date': booking.Booking.check_in_date,
-            'check_out_date': booking.Booking.check_out_date,
-        }
-        for booking in bookings
-    ]
-    return render_template('index.html', bookings=booking_data)  # 渲染首頁模板
+    return render_template('index.html')
 
-# 訂房頁面路由
+@app.route('/room')
+def room():
+    return render_template('room.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/mybooking')
+def mybooking():
+    bookings = db.session.query(Booking, Guest, Room).join(Guest, Booking.guest_id == Guest.guest_id).join(Room, Booking.room_number == Room.room_number).all()
+    return render_template('mybooking.html', bookings=bookings)
+
 @app.route('/booking', methods=['GET', 'POST'])
 def booking():
     form = BookingForm()
-    if form.validate_on_submit():  # 表單驗證成功
-        # 新增訪客資料
+    if form.validate_on_submit():
         new_guest = Guest(guest_name=form.guest_name.data, contact_info=form.contact_info.data)
         db.session.add(new_guest)
-        db.session.flush() # Flush to get the ID of the new guest
-
-        # 新增訂房資料
-        new_booking = Booking(
-            guest_id = new_guest.guest_id,
-            room_number = form.room_number.data,
-            check_in_date = form.check_in_date.data,
-            check_out_date = form.check_out_date.data
-        )
+        db.session.flush()  # Flush to get the ID of the new guest
+        new_booking = Booking(guest_id = new_guest.guest_id, room_number = form.room_number.data, check_in_date = form.check_in_date.data, check_out_date = form.check_out_date.data)
         db.session.add(new_booking)
-        db.session.commit()  # 提交變更
+        db.session.commit()
+        return redirect(url_for('mybooking'))
+    return render_template('booking.html', form = form)
 
-        for field in form:
-            print(f"{field.name}: {field.data}")
-        return redirect(url_for('index'))  # 重新導向首頁
-    return render_template('booking.html', form=form)  # 渲染訂房頁面
-
-# 清除所有訂房資料
-@app.route('/clear_bookings', methods=['POST'])
-def clear_bookings():
-    try:
-        # 刪除所有的 Booking 和 Guest 資料
-        db.session.query(Booking).delete()
-        db.session.query(Guest).delete()
-        db.session.commit()  # 提交變更
-        db.session.expunge_all()  # 清除會話緩存
-        db.session.remove()  # 重置會話
-    except Exception as e:
-        db.session.rollback()  # 回滾變更
-        print(f"Error clearing bookings: {e}")
-    return redirect(url_for('index'))  # 重新導向首頁
-
-
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    form = SearchForm()
+    booking_details = None
+    if form.validate_on_submit():
+        booking_id = form.booking_id.data
+        booking_details = db.session.query(Booking, Guest, Room
+        ).join(
+            Guest, Booking.guest_id == Guest.guest_id
+        ).join(
+            Room, Booking.room_number == Room.room_number
+        ).filter(Booking.booking_id == booking_id).first()
+    return render_template('search.html', form=form, booking_details=booking_details)
 
 if __name__ == '__main__':
-    app.run(debug=True)  # 啟動 Flask 應用程式
+    app.run(debug=True)
